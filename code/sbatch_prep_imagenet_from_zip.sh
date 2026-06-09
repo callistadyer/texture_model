@@ -9,7 +9,7 @@
 
 mkdir -p /mnt/home/cdyer/colorcorrection/logs
 
-conda activate YOUR_ENV_NAME
+source /mnt/home/cdyer/colorcorrection/colorcorrection_env/bin/activate
 
 python /mnt/home/cdyer/colorcorrection/code/prep_imagenet_from_zip.py \
     --src_dir /mnt/home/gkrawezik/ceph/AI_DATASETS/imagenet/ \
