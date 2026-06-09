@@ -149,8 +149,11 @@ def main():
     main_parser.add_argument('--imagenet_subset_ids', default=None)
     
     ######### directory-related variables #########
-    main_parser.add_argument('--data_name', type=str , default = 'multi_class_dataset')  ### !!choose for run!! ###  
-    main_parser.add_argument('--data_root_path', default= '/mnt/home/zkadkhodaie/ceph/datasets/')    
+    # main_parser.add_argument('--data_name', type=str , default = 'multi_class_dataset')  ### !!choose for run!! ###
+    # main_parser.add_argument('--data_name', type=str , default = 'nano_imagenet')  ### !!choose for run!! ###
+    main_parser.add_argument('--data_name', type=str , default = 'imagenet')  ### !!choose for run!! ###
+    # main_parser.add_argument('--data_root_path', default= '/mnt/home/zkadkhodaie/ceph/datasets/')
+    main_parser.add_argument('--data_root_path', default= '/mnt/home/gkrawezik/ceph/AI_DATASETS/ImageNet/2012/')    
     main_parser.add_argument('--dir_name', default= '/mnt/home/zkadkhodaie/ceph/22_representation_in_UNet_denoiser/denoisers/', help='folder where outputs will be saved (modify accordingly)')
     main_parser.add_argument('--optional_dir_label', default='color_no_skip_deep_dec_inv_sqrt', help='will be added to denoiser type when building dir name') ### choose for run ###  
     
@@ -249,13 +252,19 @@ def main():
     elif args.data_name == 'imagenet':
         args.data_path = args.data_root_path + args.data_name
 
-        if args.debug: 
+        if args.debug:
             print('debug mode')
-            train_set = torch.load( args.data_path + '/validation_color_full_64x64_list.pt', weights_only=True) [0:3]
-            test_set = torch.load( args.data_path + '/validation_color_full_64x64_list.pt', weights_only=True) [3:6]
-        else: 
-            train_set = torch.load( args.data_path + '/train_color_full_64x64_list.pt', weights_only=True) ### 
-            test_set = torch.load( args.data_path + '/validation_color_full_64x64_list.pt', weights_only=True)    
+            # Callista edit: standardized filenames to 80x80
+            # load first 3 classes from val set as a tiny train set for quick sanity checking (avoids loading large train file)
+            train_set = torch.load( args.data_path + '/test_80x80_color_list.pt', weights_only=True) [0:3]
+            # load next 3 classes from val set as test set
+            test_set = torch.load( args.data_path + '/test_80x80_color_list.pt', weights_only=True) [3:6]
+        else:
+            # Callista edit: standardized filenames to 80x80
+            # load full training set
+            train_set = torch.load( args.data_path + '/train_80x80_color_list.pt', weights_only=True)
+            # load full val set
+            test_set = torch.load( args.data_path + '/test_80x80_color_list.pt', weights_only=True)    
             # train_set, test_set = load_imagenet_subset(args, 200)
     
     elif args.data_name == 'face_bedroom': 
