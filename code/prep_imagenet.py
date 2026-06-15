@@ -14,8 +14,10 @@ def main():
     start_time_total = time.time()
 
     # dir_path = '/mnt/home/gkrawezik/ceph/AI_DATASETS/ImageNet/2012/nano_imagenet/'
-    dir_path = '/mnt/home/gkrawezik/ceph/AI_DATASETS/imagenet/'
+    # dir_path = '/mnt/home/gkrawezik/ceph/AI_DATASETS/imagenet/'
     # dir_path ='/mnt/home/zkadkhodaie/ceph/datasets/imagenet/'
+    # Callista edit: read from local copy and save .pt files there too
+    dir_path = '/mnt/home/cdyer/colorcorrection/images/imagenet/'
     folder_names = os.listdir(dir_path + 'train/')
 
     train_sets = []

@@ -153,8 +153,12 @@ def main():
     # main_parser.add_argument('--data_name', type=str , default = 'nano_imagenet')  ### !!choose for run!! ###
     main_parser.add_argument('--data_name', type=str , default = 'imagenet')  ### !!choose for run!! ###
     # main_parser.add_argument('--data_root_path', default= '/mnt/home/zkadkhodaie/ceph/datasets/')
-    main_parser.add_argument('--data_root_path', default= '/mnt/home/gkrawezik/ceph/AI_DATASETS/ImageNet/2012/')    
-    main_parser.add_argument('--dir_name', default= '/mnt/home/zkadkhodaie/ceph/22_representation_in_UNet_denoiser/denoisers/', help='folder where outputs will be saved (modify accordingly)')
+    # main_parser.add_argument('--data_root_path', default= '/mnt/home/gkrawezik/ceph/AI_DATASETS/ImageNet/2012/')
+    # Callista edit: data_root_path points to our directory; data_path = data_root_path + data_name = .../images/imagenet/
+    main_parser.add_argument('--data_root_path', default= '/mnt/home/cdyer/colorcorrection/images/')
+    # Callista edit: dir_name is where model checkpoints are saved
+    # main_parser.add_argument('--dir_name', default= '/mnt/home/zkadkhodaie/ceph/22_representation_in_UNet_denoiser/denoisers/', help='folder where outputs will be saved (modify accordingly)')
+    main_parser.add_argument('--dir_name', default= '/mnt/home/cdyer/colorcorrection/results/', help='folder where outputs will be saved (modify accordingly)')
     main_parser.add_argument('--optional_dir_label', default='color_no_skip_deep_dec_inv_sqrt', help='will be added to denoiser type when building dir name') ### choose for run ###  
     
     ######### other variables #########

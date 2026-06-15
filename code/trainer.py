@@ -221,15 +221,29 @@ def run_training(model, train_set, test_set ,criterion,optimizer, args, train_se
     '''
     ###
     start_time_total = time.time()
-    epoch_loss_list_train = [] 
+    epoch_loss_list_train = []
     epoch_psnr_list_train = []
     epoch_loss_list_test = []
     epoch_psnr_list_test = []
     psnr_range_list = []
     writer = SummaryWriter(log_dir=args.dir_name)
 
-    
-    # if train_set_cond is None: 
+    # Callista edit: resume from checkpoint if one exists
+    start_epoch = 0
+    checkpoint_path = args.dir_name + '/checkpoint.pt'
+    if os.path.exists(checkpoint_path):
+        print(f'Resuming from checkpoint: {checkpoint_path}')
+        checkpoint = torch.load(checkpoint_path, map_location=args.device)
+        model.load_state_dict(checkpoint['model_state'])
+        optimizer.load_state_dict(checkpoint['optimizer_state'])
+        start_epoch = checkpoint['epoch'] + 1
+        epoch_loss_list_train = checkpoint['loss_train']
+        epoch_psnr_list_train = checkpoint['psnr_train']
+        epoch_loss_list_test = checkpoint['loss_test']
+        epoch_psnr_list_test = checkpoint['psnr_test']
+        print(f'Resuming from epoch {start_epoch}')
+
+    # if train_set_cond is None:
     trainloader , trainloader_cond = make_loader(dataset=train_set, batch_size=args.batch_size, dataset_cond=train_set_cond, self_cond = args.self_cond)
     testloader, testloader_cond = make_loader(dataset=test_set, batch_size=args.batch_size, dataset_cond=test_set_cond, self_cond = args.self_cond)
 
@@ -237,9 +251,9 @@ def run_training(model, train_set, test_set ,criterion,optimizer, args, train_se
     im_test = next(iter(testloader))[0].to(args.device)
     im_train_cond= None
     im_test_cond = None
-        
+
     ### loop over number of epochs
-    for h in range(args.num_epochs):
+    for h in range(start_epoch, args.num_epochs):
         print('epoch ', h )
         if h >= args.lr_freq and h%args.lr_freq==0:
             for param_group in optimizer.param_groups:
@@ -287,7 +301,17 @@ def run_training(model, train_set, test_set ,criterion,optimizer, args, train_se
         writer.add_scalars('psnr_range', psnr_range, global_step=h )
       
         
-        #save model after each epoch
+        # Callista edit: save full checkpoint after every epoch so training can resume if job is killed
+        torch.save({
+            'epoch': h,
+            'model_state': model.state_dict(),
+            'optimizer_state': optimizer.state_dict(),
+            'loss_train': epoch_loss_list_train,
+            'psnr_train': epoch_psnr_list_train,
+            'loss_test': epoch_loss_list_test,
+            'psnr_test': epoch_psnr_list_test,
+        }, checkpoint_path)
+        # also save model weights alone for easy loading later
         if args.coarse is True:
             torch.save(model.state_dict(), args.dir_name  + '/model.pt')
         else:
