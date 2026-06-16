@@ -13,7 +13,8 @@ from network import *
 from model_loader_func import initialize_network
 from trainer import run_training
 from dataloader_func import weights_init_kaiming 
-from  synthetic_data_generators import oval_dataset, generate_circles_texture, generate_squares_texture, generate_ovals_texture, generate_object_texture_mix
+# Callista edit: commented out - not used in imagenet training and file does not exist on server
+# from  synthetic_data_generators import oval_dataset, generate_circles_texture, generate_squares_texture, generate_ovals_texture, generate_object_texture_mix
 import pickle
 
 ####################################################################################################################

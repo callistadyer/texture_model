@@ -43,5 +43,6 @@ else
 fi
 
 echo "[$(date)] Step 4: running main.py (training)"
+cd /mnt/home/cdyer/colorcorrection/texture_model/code
 python main.py
 echo "[$(date)] training done"
