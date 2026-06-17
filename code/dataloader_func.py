@@ -33,7 +33,10 @@ def load_dataset( folder_path, s=None,n_images=None, crop=True, shuffle=True):
 
     n = 0
     m = 0
-    while n-m < n_images:
+    # Callista edit: original condition "n-m < n_images" crashes when a folder contains grayscale images.
+    # Each grayscale image increments m (skipped count), so the loop tries to go beyond the end of the file list.
+    # Adding "n < len(names)" stops the loop when files run out, returning however many RGB images were found.
+    while n-m < n_images and n < len(names):
         im = plt.imread(folder_path + names[n])
 
         if crop is True: 

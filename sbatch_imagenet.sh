@@ -10,6 +10,8 @@
 
 mkdir -p /mnt/home/cdyer/colorcorrection/logs
 
+# Callista edit: load CUDA 12.5.1 to match the GPU driver on the worker nodes
+module load cuda/12.5.1
 source /mnt/home/cdyer/colorcorrection/colorcorrection_env/bin/activate
 
 # skip unzip if train/ already has contents
@@ -38,11 +40,11 @@ if [ -f "/mnt/home/cdyer/colorcorrection/images/imagenet/train_80x80_color_list.
 else
     echo "[$(date)] Step 3: running prep_imagenet.py"
     cd /mnt/home/cdyer/colorcorrection/texture_model/code
-    python prep_imagenet.py
+    python -u prep_imagenet.py
     echo "[$(date)] prep done"
 fi
 
 echo "[$(date)] Step 4: running main.py (training)"
 cd /mnt/home/cdyer/colorcorrection/texture_model/code
-python main.py
+python -u main.py
 echo "[$(date)] training done"
