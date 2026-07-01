@@ -156,7 +156,7 @@ def main():
     # main_parser.add_argument('--data_root_path', default= '/mnt/home/zkadkhodaie/ceph/datasets/')
     # main_parser.add_argument('--data_root_path', default= '/mnt/home/gkrawezik/ceph/AI_DATASETS/ImageNet/2012/')
     # Callista edit: data_root_path points to our directory; data_path = data_root_path + data_name = .../images/imagenet/
-    main_parser.add_argument('--data_root_path', default= '/mnt/home/cdyer/colorcorrection/images/')
+    main_parser.add_argument('--data_root_path', default= '/mnt/home/cdyer/ceph/images/')
     # Callista edit: dir_name is where model checkpoints are saved
     # main_parser.add_argument('--dir_name', default= '/mnt/home/zkadkhodaie/ceph/22_representation_in_UNet_denoiser/denoisers/', help='folder where outputs will be saved (modify accordingly)')
     main_parser.add_argument('--dir_name', default= '/mnt/home/cdyer/colorcorrection/results/', help='folder where outputs will be saved (modify accordingly)')
@@ -272,7 +272,63 @@ def main():
             test_set = torch.load( args.data_path + '/test_80x80_color_list.pt', weights_only=True)    
             # train_set, test_set = load_imagenet_subset(args, 200)
     
-    elif args.data_name == 'face_bedroom': 
+    # Callista change 6/30/26 - split-half training for generalization test
+    # full_train is a LIST of tensors -- one tensor per ImageNet class (e.g. 1000 classes).
+    # Each tensor has shape (N, C, H, W) where N is the number of images in that class.
+    # We split WITHIN each class so both models see every category, just different images.
+    # This is different from splitting the full list in half, which would give each model
+    # only half the categories.
+    elif args.data_name == 'imagenet_splitA':
+        args.data_path = args.data_root_path + 'imagenet'
+        if args.debug:
+            # debug: use a few val classes as a stand-in so the pipeline runs fast
+            train_set = torch.load(args.data_path + '/test_80x80_color_list.pt', weights_only=True)[0:3]
+            test_set  = torch.load(args.data_path + '/test_80x80_color_list.pt', weights_only=True)[3:6]
+        else:
+            # full_train is a list of ~1000 tensors, one tensor per ImageNet class
+            full_train = torch.load(args.data_path + '/train_80x80_color_list.pt', weights_only=True)
+            train_set = []
+            for d in full_train:
+                # d is one class, shape (N, C, H, W): N images from that class
+                # we index into this class's images (not across classes) to get the first half
+                n_images       = len(d)
+                imageIdx_start = 0
+                imageIdx_end   = n_images // 2   # first half of this class
+                train_set.append(d[imageIdx_start:imageIdx_end])
+            # train_set is now a list of ~1000 tensors, each holding the first half of one class
+            test_set = torch.load(args.data_path + '/test_80x80_color_list.pt', weights_only=True)
+
+    elif args.data_name == 'imagenet_splitB':
+        args.data_path = args.data_root_path + 'imagenet'
+        if args.debug:
+            # debug: use a few val classes as a stand-in so the pipeline runs fast
+            train_set = torch.load(args.data_path + '/test_80x80_color_list.pt', weights_only=True)[0:3]
+            test_set  = torch.load(args.data_path + '/test_80x80_color_list.pt', weights_only=True)[3:6]
+        else:
+            # full_train is a list of ~1000 tensors, one tensor per ImageNet class
+            full_train = torch.load(args.data_path + '/train_80x80_color_list.pt', weights_only=True)
+            train_set = []
+            for d in full_train:
+                # d is one class, shape (N, C, H, W): N images from that class
+                # we index into this class's images (not across classes) to get the second half
+                n_images       = len(d)
+                imageIdx_start = n_images // 2   # second half of this class
+                imageIdx_end   = n_images
+                train_set.append(d[imageIdx_start:imageIdx_end])
+            # train_set is now a list of ~1000 tensors, each holding the second half of one class
+            test_set = torch.load(args.data_path + '/test_80x80_color_list.pt', weights_only=True)
+
+    # Callista change 6/23/26 - load dichromacy-simulated imagenet images
+    elif args.data_name == 'imagenet_dichromacy':
+        args.data_path = args.data_root_path + 'imagenet'
+        if args.debug:
+            train_set = torch.load(args.data_path + '/test_80x80_color_dichromacy_deuteranopia_list.pt', weights_only=True)[0:3]
+            test_set  = torch.load(args.data_path + '/test_80x80_color_dichromacy_deuteranopia_list.pt', weights_only=True)[3:6]
+        else:
+            train_set = torch.load(args.data_path + '/train_80x80_color_dichromacy_deuteranopia_list.pt', weights_only=True)
+            test_set  = torch.load(args.data_path + '/test_80x80_color_dichromacy_deuteranopia_list.pt',  weights_only=True)
+
+    elif args.data_name == 'face_bedroom':
         train_set, test_set = load_prep_half_bed_half_face(args)
 
     elif args.data_name == 'multi_class_dataset': 

@@ -312,8 +312,10 @@ def run_training(model, train_set, test_set ,criterion,optimizer, args, train_se
             'psnr_test': epoch_psnr_list_test,
         }, checkpoint_path)
         # also save model weights alone for easy loading later
+        # Callista change 6/23/26 - append _dichromacy to filename when training on dichromacy data
+        _model_fname = 'model_dichromacy.pt' if 'dichromacy' in getattr(args, 'data_name', '') else 'model.pt'
         if args.coarse is True:
-            torch.save(model.state_dict(), args.dir_name  + '/model.pt')
+            torch.save(model.state_dict(), args.dir_name + '/' + _model_fname)
         else:
             torch.save(model.state_dict(), args.dir_name  + '/model_scale'+str(args.SLURM_ARRAY_TASK_ID)+'.pt')
 
