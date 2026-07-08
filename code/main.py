@@ -190,12 +190,13 @@ def main():
         parser.add_argument('--NormType', default= 'LayerNorm') ## choose for run
         parser.add_argument('--dilations', default= [2,4,6,8]) ## choose for run
         
-    if main_args.arch_name== 'UNet_flex': 
+    if main_args.arch_name== 'UNet_flex':
         parser.add_argument('--num_kernels', default= [64,128, 256, 512],help='list of len num_blocks+1')
-        parser.add_argument('--num_blocks',type=int, help='this will be inferred from num_kernels len')    
-        parser.add_argument('--num_enc_conv', default= [2,2,2], help='min is 2')  
-        parser.add_argument('--num_mid_conv', default= 3, help='min is 2')  
-        parser.add_argument('--num_dec_conv', default= [6, 6,6], help='min is 2') 
+        parser.add_argument('--num_blocks',type=int, help='this will be inferred from num_kernels len')
+        # parser.add_argument('--num_enc_conv', default= [2,2,2], help='min is 2')
+        parser.add_argument('--num_enc_conv', default= [4,4,4], help='min is 2')
+        parser.add_argument('--num_mid_conv', default= 3, help='min is 2')
+        parser.add_argument('--num_dec_conv', default= [6, 6,6], help='min is 2')
         parser.add_argument('--NormType', default= 'LayerNorm') ## choose for run
         parser.add_argument('--inter_skip', default= True) ## choose for run
         parser.add_argument('--dilations', default= None) ## choose for run
@@ -236,6 +237,7 @@ def main():
 
     args = parser.parse_args()  
     args.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    print(f"ARE YOU USING GPU? {args.device}")
            
     #################################################################################
 

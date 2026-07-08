@@ -63,16 +63,16 @@ print(f'  pixel diff between first image of A and B in class 0: {pixel_diff:.4f}
 echo "[$(date)] Step 1: training splitA (first half of each class)"
 python -u main.py \
     --data_name imagenet_splitA \
-    --num_epochs 45 \
+    --num_epochs 1000 \
     --data_root_path /tmp/ \
-    --optional_dir_label color_no_skip_deep_dec_inv_sqrt_splitA
+    --optional_dir_label color_no_skip_deep_dec_deep_enc_inv_sqrt_splitA
 echo "[$(date)] splitA done"
 
 # Step 2: train on second half of images from each class
 echo "[$(date)] Step 2: training splitB (second half of each class)"
 python -u main.py \
     --data_name imagenet_splitB \
-    --num_epochs 45 \
+    --num_epochs 1000 \
     --data_root_path /tmp/ \
-    --optional_dir_label color_no_skip_deep_dec_inv_sqrt_splitB
+    --optional_dir_label color_no_skip_deep_dec_deep_enc_inv_sqrt_splitB
 echo "[$(date)] splitB done"

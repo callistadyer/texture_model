@@ -152,7 +152,8 @@ if args.model in ('UNet', 'UNet_45500', 'UNet_splitA', 'UNet_splitB'):
 
     model = ResidualWrapper(unet_base).to(device)
     print(f'Loaded {args.model} (UNet_flex) from {weights_file}')
-
+    print(device)
+    
 elif args.model == 'conv3':
     from models.denoiser import Denoiser
 
@@ -165,6 +166,7 @@ elif args.model == 'conv3':
     model.load_state_dict(torch.load(weights_path, map_location='cpu', weights_only=False))
     model.eval().to(device)
     print(f'Loaded conv3 Denoiser from {weights_path}')
+    print(device)
 
 else:
     raise ValueError(f'Unknown model "{args.model}". Use "UNet", "UNet_45500", "UNet_splitA", "UNet_splitB", or "conv3".')
@@ -212,9 +214,16 @@ all_ys = sample_prior(model, init,
                       stride=args.stride)
 
 # ── plot and save ─────────────────────────────────────────────────────────────
+#
+# all_ys is a list of numpy images (H, W, 3) saved every args.stride iterations.
+# We pick 5 evenly-spaced snapshots to show the image evolving from noise to output.
+# Two files are saved:
+#   <output>_progress.png  -- 1x5 panel showing snapshots across the run
+#   <output>.png           -- the final denoised image on its own
 
 final = np.clip(all_ys[-1], 0, 1)
 
+# pick 5 evenly-spaced snapshots (always includes first and last)
 n_panels = 5
 if len(all_ys) <= n_panels:
     chosen = all_ys
@@ -227,15 +236,16 @@ for ax, img in zip(axs, chosen):
     ax.imshow(np.clip(img, 0, 1))
     ax.axis('off')
 
-model_label = {'UNet':       'UNet_flex 240k (model.pt)',
-               'UNet_45500': 'UNet_flex 45.5k (model_45500.pt)',
+model_label = {'UNet':        'UNet_flex 240k (model.pt)',
+               'UNet_45500':  'UNet_flex 45.5k (model_45500.pt)',
                'UNet_splitA': 'UNet_flex splitA (model_splitA.pt)',
                'UNet_splitB': 'UNet_flex splitB (model_splitB.pt)',
-               'conv3': 'Denoiser conv3_ln'}.get(args.model, args.model)
+               'conv3':       'Denoiser conv3_ln'}.get(args.model, args.model)
 seed_label = f'seed {args.seed}' if args.seed is not None else 'no seed'
 fig.suptitle(f'Denoising from white noise  |  model: {model_label}  |  {seed_label}', fontsize=13)
 fig.tight_layout()
 
+# save progress plot and final image
 plot_path = args.output.replace('.png', '_progress.png')
 fig.savefig(plot_path, dpi=150, bbox_inches='tight')
 print(f'Progress plot saved to {plot_path}')
