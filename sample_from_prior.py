@@ -20,10 +20,10 @@ Usage:
 
 Arguments:
     --model     Which denoiser to use (default: UNet)
-                  "UNet"        = UNet_flex trained on 240k ImageNet images (model.pt)
-                  "UNet_45500"  = UNet_flex trained on 45.5k ImageNet images (model_45500.pt)
-                  "UNet_splitA" = UNet_flex trained on first half of each ImageNet class (model_splitA.pt)
-                  "UNet_splitB" = UNet_flex trained on second half of each ImageNet class (model_splitB.pt)
+                  "UNet"        = UNet_flex trained on 240k ImageNet images (old_models/model.pt)
+                  "UNet_45500"  = UNet_flex trained on 45.5k ImageNet images (old_models/model_45500.pt)
+                  "UNet_splitA" = UNet_flex trained on first half of each ImageNet class (models_trained/UNet_splitA_.../model.pt)
+                  "UNet_splitB" = UNet_flex trained on second half of each ImageNet class (models_trained/UNet_splitB_.../model.pt)
                   "conv3"       = pretrained conv3_ln Denoiser (Denoiser_Reconstruction/assets/conv3_ln.pt)
     --size      Side length of the output image in pixels (default: 80,
                 which matches the 80x80 patches the model was trained on;
@@ -99,13 +99,11 @@ print(f'Using device: {device}')
 #   3. Build the empty network, then fill it with trained weights (load_state_dict)
 #   4. Set to eval mode
 #
-# UNet_flex (model.pt / model_45500.pt / model_splitA.pt / model_splitB.pt):
-# All UNet_flex variants share the same architecture (exp_arguments.pkl) and
-# differ only in training data. UNet_flex was trained with skip=False, so
-# model(noisy) = clean image. But sample_prior (and linear_inverse) expect
-# model(y) = noise residual, i.e. model(y) = noisy - clean.
-# ResidualWrapper converts: forward(y) = y - UNet_flex(y) = noise residual.
-# This is identical to what recon_visualize_dichromat.ipynb does.
+# UNet_flex (old_models/model.pt / old_models/model_45500.pt / models_trained/UNet_splitA_.../model.pt / models_trained/UNet_splitB_.../model.pt):
+#
+# UNet_flex was trained with skip=False, so model(noisy) = clean image
+# But sample_prior (and linear_inverse) expect model(y) = noise residual, i.e. model(y) = noisy - clean.
+# ResidualWrapper converts: forward(y) = y - UNet_flex(y) = noise residual
 #
 # conv3 Denoiser (conv3_ln.pt):
 # The Denoiser already outputs the noise residual directly (trained with
@@ -122,24 +120,31 @@ if recon_path not in sys.path:
 if args.model in ('UNet', 'UNet_45500', 'UNet_splitA', 'UNet_splitB'):
     from network import UNet_flex
 
+    # Exact folder/file locations for each model - the 45500-image model still lives
+    # in old_models/ (flat files); the full model and the two splits live in their own
+    # subfolders under models_trained/. Update these names if a model gets retrained
+    # further and its image/epoch counts change.
     pkl_file = {
-        'UNet':       'exp_arguments.pkl',
-        'UNet_45500': 'exp_arguments_45500.pkl',
-        'UNet_splitA': 'exp_arguments.pkl',
-        'UNet_splitB': 'exp_arguments.pkl',
+        'UNet':       'models_trained/UNet_full_240541imgs_1000epochs/exp_arguments.pkl',
+        'UNet_45500': 'old_models/exp_arguments_45500.pkl',
+        'UNet_splitA': 'models_trained/UNet_splitA_120229imgs_1000epochs/exp_arguments.pkl',
+        'UNet_splitB': 'models_trained/UNet_splitB_120312imgs_1000epochs/exp_arguments.pkl',
     }[args.model]
     weights_file = {
-        'UNet':       'model.pt',
-        'UNet_45500': 'model_45500.pt',
-        'UNet_splitA': 'model_splitA.pt',
-        'UNet_splitB': 'model_splitB.pt',
+        'UNet':       'models_trained/UNet_full_240541imgs_1000epochs/model.pt',
+        'UNet_45500': 'old_models/model_45500.pt',
+        'UNet_splitA': 'models_trained/UNet_splitA_120229imgs_1000epochs/model.pt',
+        'UNet_splitB': 'models_trained/UNet_splitB_120312imgs_1000epochs/model.pt',
     }[args.model]
 
     with open(texture_dir / pkl_file, 'rb') as f:
         unet_args = SimpleNamespace(**pickle.load(f))
 
     unet_base = UNet_flex(unet_args)
-    unet_base.load_state_dict(torch.load(texture_dir / weights_file, map_location='cpu', weights_only=False))
+    state_dict = torch.load(texture_dir / weights_file, map_location='cpu', weights_only=False)
+    # checkpoints trained with nn.DataParallel (multi-GPU) prefix every key with "module."
+    state_dict = {k.removeprefix('module.'): v for k, v in state_dict.items()}
+    unet_base.load_state_dict(state_dict)
     unet_base.eval()
 
     # Wrap so sample_prior receives noise residual instead of clean image
@@ -158,8 +163,7 @@ elif args.model == 'conv3':
     from models.denoiser import Denoiser
 
     # These were grabbed from the defaults in Denoiser_Reconstruction/utils/helper.py
-    lq_args = SimpleNamespace(padding=1, kernel_size=3, num_kernels=64,
-                               num_layers=20, im_channels=3)
+    lq_args = SimpleNamespace(padding=1, kernel_size=3, num_kernels=64,num_layers=20, im_channels=3)
     weights_path = recon_dir / 'assets' / 'conv3_ln.pt'
 
     model = Denoiser(lq_args)
@@ -236,10 +240,10 @@ for ax, img in zip(axs, chosen):
     ax.imshow(np.clip(img, 0, 1))
     ax.axis('off')
 
-model_label = {'UNet':        'UNet_flex 240k (model.pt)',
-               'UNet_45500':  'UNet_flex 45.5k (model_45500.pt)',
-               'UNet_splitA': 'UNet_flex splitA (model_splitA.pt)',
-               'UNet_splitB': 'UNet_flex splitB (model_splitB.pt)',
+model_label = {'UNet':        'UNet_flex 240k (models_trained/UNet_full_.../model.pt)',
+               'UNet_45500':  'UNet_flex 45.5k (old_models/model_45500.pt)',
+               'UNet_splitA': 'UNet_flex splitA (models_trained/UNet_splitA_.../model.pt)',
+               'UNet_splitB': 'UNet_flex splitB (models_trained/UNet_splitB_.../model.pt)',
                'conv3':       'Denoiser conv3_ln'}.get(args.model, args.model)
 seed_label = f'seed {args.seed}' if args.seed is not None else 'no seed'
 fig.suptitle(f'Denoising from white noise  |  model: {model_label}  |  {seed_label}', fontsize=13)

@@ -1,3 +1,4 @@
+import os
 import sys
 import argparse
 sys.path.insert(0, '/Users/callista/Documents/MATLAB/projects/ColorCorrectionRecon/texture_model/code')
@@ -8,13 +9,39 @@ from PIL import Image
 import torchvision.transforms as T
 import matplotlib.pyplot as plt
 
+# All run_inference.py outputs are saved here, regardless of which model was used
+results_dir = '/Users/callista/Documents/MATLAB/projects/ColorCorrectionRecon/texture_model/runInferenceResults'
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--image',    type=str, required=True,  help='path to input image')
     parser.add_argument('--noise',    type=int, default=50,     help='noise level (0-255)')
-    parser.add_argument('--output',   type=str, default='inference_result.png', help='path to save result')
-    parser.add_argument('--model_dir',type=str, default='/Users/callista/Documents/MATLAB/projects/ColorCorrectionRecon/texture_model/', help='folder containing model.pt and exp_arguments.pkl')
+    parser.add_argument('--output',   type=str, default=None,
+                         help='output filename (just the name - it is always saved into runInferenceResults/); '
+                              'default includes the image name, model name, and noise level')
+    parser.add_argument('--model_dir',type=str, default='/Users/callista/Documents/MATLAB/projects/ColorCorrectionRecon/texture_model/models_trained/UNet_full_240541imgs_1000epochs/', help='folder containing model.pt and exp_arguments.pkl')
     args = parser.parse_args()
+
+    # Make sure the results folder exists
+    os.makedirs(results_dir, exist_ok=True)
+
+    # Name of the model used, taken from the last folder in --model_dir
+    # (e.g. '.../models_trained/UNet_full_240541imgs_483epochs/' -> 'UNet_full_240541imgs_483epochs')
+    model_dir_no_trailing_slash = args.model_dir.rstrip('/')
+    model_label = os.path.basename(model_dir_no_trailing_slash)
+
+    # Name of the input image, without its file extension
+    image_filename = os.path.basename(args.image)
+    image_label = os.path.splitext(image_filename)[0]
+
+    if args.output is None:
+        # No filename given - build one from the image name, the model name, and the noise level
+        output_filename = f'{image_label}_{model_label}_noise{args.noise}.png'
+    else:
+        # A filename was given - still save it into results_dir, using just the name part
+        output_filename = os.path.basename(args.output)
+
+    args.output = os.path.join(results_dir, output_filename)
 
     print(f'Loading model from {args.model_dir}')
     model = load_learned_model(args.model_dir)

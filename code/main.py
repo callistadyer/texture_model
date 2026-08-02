@@ -56,7 +56,8 @@ def load_prep_specific_class(args):
     train_set = []
     test_set = []
 
-    data = torch.load( args.data_path +'/train_80x80.pt', weights_only=True)    
+    # Callista's Note: PyTorch — torch.load deserializes a saved tensor/list of tensors from disk into memory
+    data = torch.load( args.data_path +'/train_80x80.pt', weights_only=True)
     
     if args.debug: 
         N = args.batch_size
@@ -80,24 +81,26 @@ def load_prep_texture(args, color, dim=80, n_test=4):
     '''
     # ### for 80x80 patches
     args.data_path = args.data_root_path + 'texture_EPS'
+    # Callista's Note: PyTorch — every branch below uses torch.load to read a saved tensor file
+    # from disk into memory; torch.cat joins two loaded tensors end-to-end into one tensor
     if dim==80:
-        if color: 
+        if color:
             data = torch.load( args.data_path + '/patched_1024x1024_to_80x80_all_sets_color.pt', weights_only=True)
             n_patches = int(1024/dim)**2 # 144
-            
-        else:     
+
+        else:
             data1 = torch.load( args.data_path + '/patched_1024x1024_to_80x80.pt', weights_only=True)
-            data2 = torch.load( args.data_path + '/patched_1024x1024_to_80x80_down.pt', weights_only=True)    
+            data2 = torch.load( args.data_path + '/patched_1024x1024_to_80x80_down.pt', weights_only=True)
             data = torch.cat([data1, data2])
             n_patches = int(1024/dim)**2 # 144
-            
-    ## for 128x128 patches             
-    if dim==128: 
-        if color: 
+
+    ## for 128x128 patches
+    if dim==128:
+        if color:
             data = torch.load( args.data_path + '/patched_1024x1024_to_128x128_all_sets_color.pt', weights_only=True)
             n_patches = int(1024/dim)**2 # 64
-            
-        else: 
+
+        else:
             data = torch.load( args.data_path + '/patched_1536x1536_to_128x128.pt', weights_only=True)
             n_patches = int(1536/dim)**2 # 144
             
@@ -193,8 +196,8 @@ def main():
     if main_args.arch_name== 'UNet_flex':
         parser.add_argument('--num_kernels', default= [64,128, 256, 512],help='list of len num_blocks+1')
         parser.add_argument('--num_blocks',type=int, help='this will be inferred from num_kernels len')
-        # parser.add_argument('--num_enc_conv', default= [2,2,2], help='min is 2')
-        parser.add_argument('--num_enc_conv', default= [4,4,4], help='min is 2')
+        parser.add_argument('--num_enc_conv', default= [2,2,2], help='min is 2')
+        # parser.add_argument('--num_enc_conv', default= [4,4,4], help='min is 2')
         parser.add_argument('--num_mid_conv', default= 3, help='min is 2')
         parser.add_argument('--num_dec_conv', default= [6, 6,6], help='min is 2')
         parser.add_argument('--NormType', default= 'LayerNorm') ## choose for run
@@ -235,7 +238,9 @@ def main():
         parser.add_argument('--coarse', default = True, help = 'For BF_CNN_RF model. Denoiser for coarse or fine coefficients')
         parser.add_argument('--j', default = 0, type=int, help='scale for the multi-scale data. Strats from 0')
 
-    args = parser.parse_args()  
+    args = parser.parse_args()
+    # Callista's Note: PyTorch — torch.cuda.is_available() checks whether a GPU is visible to
+    # this process; torch.device(...) builds the device object everything downstream is moved to
     args.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print(f"ARE YOU USING GPU? {args.device}")
            
@@ -248,8 +253,10 @@ def main():
 
     
     ######### load raw data #########
+    # Callista's Note: PyTorch — the branches below all use torch.load to read a saved tensor
+    # (or list of tensors) file from disk into memory as the train/test set
 
-    if args.debug: 
+    if args.debug:
         args.num_epochs=3
 
     
@@ -346,8 +353,10 @@ def main():
         train_set = [data[0:150_000]]
         test_set = [data[0:100]]
         
+    # Callista's Note: PyTorch — torch.cat stitches the list of per-class tensors into one big
+    # tensor just to read off its total size/shape (train_set itself stays a list for training)
     args.set_size = torch.cat(train_set).shape[0]
-    image_size = torch.cat(train_set).shape 
+    image_size = torch.cat(train_set).shape
     args.num_channels = image_size[1] #set number of input channels
     print('train data size: ', image_size )
     
@@ -358,6 +367,8 @@ def main():
     model = initialize_network(args.arch_name, args)
     args.RF = model.RF    
     model.apply(weights_init_kaiming)
+    # Callista's Note: PyTorch — nn.DataParallel wraps the model so it can split each batch
+    # across all visible GPUs and run them in parallel; .cuda() moves the model's weights to GPU
     if torch.cuda.is_available():
         print('[ Using CUDA ]')
         model = nn.DataParallel(model).cuda()
@@ -372,7 +383,13 @@ def main():
         
     print(args.dir_name)
     ######### select criterion and optimizer #########
+    # Callista's Note: PyTorch — nn.MSELoss builds a mean-squared-error loss function object.
+    # reduction='sum' means each call adds up the squared per-pixel errors over the whole batch
+    # into one number, instead of averaging them. Called later in trainer.py as criterion(output, target).
     criterion = nn.MSELoss(reduction='sum')
+    # Callista's Note: PyTorch — Adam(...) builds the optimizer that will update the model's
+    # weights during training. filter(lambda p: p.requires_grad, model.parameters()) hands it
+    # only the trainable weights (skips any frozen ones); lr=args.lr sets the step size it uses.
     optimizer = Adam(filter(lambda p: p.requires_grad,model.parameters()), lr = args.lr)
 
     ## save model args in case 

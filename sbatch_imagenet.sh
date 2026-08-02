@@ -28,6 +28,6 @@ fi
 
 echo "[$(date)] Step 2: running main.py (training)"
 cd /mnt/home/cdyer/colorcorrection/texture_model/code
-python -u main.py --num_epochs 45 --data_root_path /tmp/ \
-    --optional_dir_label color_no_skip_deep_dec_deep_enc_inv_sqrt
+python -u main.py --num_epochs 1000 --data_root_path /tmp/ \
+    --optional_dir_label color_no_skip_deep_dec_inv_sqrt
 echo "[$(date)] training done"

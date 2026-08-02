@@ -35,5 +35,5 @@ python -u main.py \
     --data_name imagenet_dichromacy \
     --num_epochs 45 \
     --data_root_path /tmp/ \
-    --optional_dir_label color_no_skip_deep_enc_dichromacy
+    --optional_dir_label color_no_skip_dichromacy
 echo "[$(date)] dichromacy training done"
