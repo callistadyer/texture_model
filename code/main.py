@@ -355,8 +355,14 @@ def main():
         
     # Callista's Note: PyTorch — torch.cat stitches the list of per-class tensors into one big
     # tensor just to read off its total size/shape (train_set itself stays a list for training)
-    args.set_size = torch.cat(train_set).shape[0]
+    # args.set_size = torch.cat(train_set).shape[0]
+    # image_size = torch.cat(train_set).shape
+    # This used to call torch.cat(train_set) twice, building the full concatenated
+    # tensor (~17GB for the full color ImageNet set) twice just to read two numbers
+    # off its shape - image_size[0] and args.set_size were always the same value.
+    # Concatenating once and reading both numbers off the one result does the same thing.
     image_size = torch.cat(train_set).shape
+    args.set_size = image_size[0]
     args.num_channels = image_size[1] #set number of input channels
     print('train data size: ', image_size )
     

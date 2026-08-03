@@ -5,12 +5,17 @@ sys.path.insert(0, '/Users/callista/Documents/MATLAB/projects/ColorCorrectionRec
 
 import torch
 from model_loader_func import load_learned_model
+from quality_metrics_func import batch_ave_psnr_torch
 from PIL import Image
 import torchvision.transforms as T
 import matplotlib.pyplot as plt
 
 # All run_inference.py outputs are saved here, regardless of which model was used
 results_dir = '/Users/callista/Documents/MATLAB/projects/ColorCorrectionRecon/texture_model/runInferenceResults'
+
+# Set to False to skip building/saving the comparison plot entirely.
+# PSNR is always computed and printed either way.
+PLOT = True
 
 def main():
     parser = argparse.ArgumentParser()
@@ -20,6 +25,7 @@ def main():
                          help='output filename (just the name - it is always saved into runInferenceResults/); '
                               'default includes the image name, model name, and noise level')
     parser.add_argument('--model_dir',type=str, default='/Users/callista/Documents/MATLAB/projects/ColorCorrectionRecon/texture_model/models_trained/UNet_full_240541imgs_1000epochs/', help='folder containing model.pt and exp_arguments.pkl')
+    parser.add_argument('--no_show', action='store_true', help='skip the blocking plt.show() window (use for batch/sweep runs)')
     args = parser.parse_args()
 
     # Make sure the results folder exists
@@ -65,20 +71,27 @@ def main():
     with torch.no_grad():
         denoised = model(noisy)
 
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
-    axes[0].imshow(img_tensor[0].permute(1, 2, 0))
-    axes[0].set_title('Original')
-    axes[0].axis('off')
-    axes[1].imshow(noisy[0].permute(1, 2, 0).clamp(0, 1))
-    axes[1].set_title(f'Noisy (level={args.noise})')
-    axes[1].axis('off')
-    axes[2].imshow(denoised[0].permute(1, 2, 0).detach().clamp(0, 1))
-    axes[2].set_title('Denoised')
-    axes[2].axis('off')
-    plt.tight_layout()
-    plt.savefig(args.output)
-    print(f'Saved result to {args.output}')
-    plt.show()
+    psnr_before = batch_ave_psnr_torch(img_tensor, noisy, max_I=1.).item()
+    psnr_after = batch_ave_psnr_torch(img_tensor, denoised, max_I=1.).item()
+    print(f'PSNR_BEFORE_DENOISING: {psnr_before:.4f}')
+    print(f'PSNR_AFTER_DENOISING: {psnr_after:.4f}')
+
+    if PLOT:
+        fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+        axes[0].imshow(img_tensor[0].permute(1, 2, 0))
+        axes[0].set_title('Original')
+        axes[0].axis('off')
+        axes[1].imshow(noisy[0].permute(1, 2, 0).clamp(0, 1))
+        axes[1].set_title(f'Noisy (level={args.noise})\nPSNR={psnr_before:.2f} dB')
+        axes[1].axis('off')
+        axes[2].imshow(denoised[0].permute(1, 2, 0).detach().clamp(0, 1))
+        axes[2].set_title(f'Denoised\nPSNR={psnr_after:.2f} dB')
+        axes[2].axis('off')
+        plt.tight_layout()
+        plt.savefig(args.output)
+        print(f'Saved result to {args.output}')
+        if not args.no_show:
+            plt.show()
 
 if __name__ == '__main__':
     main()

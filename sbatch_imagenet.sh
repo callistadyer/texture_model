@@ -6,7 +6,8 @@
 #SBATCH --partition=gpu
 #SBATCH --gpus=4
 #SBATCH --nodes=1
-#SBATCH --ntasks=64
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
 
 mkdir -p /mnt/home/cdyer/colorcorrection/logs
 
