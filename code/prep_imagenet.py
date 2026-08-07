@@ -1,3 +1,4 @@
+
 import numpy as np
 import os
 import time
@@ -6,7 +7,7 @@ import scipy.io
 from dataloader_func import load_dataset, load_nested_dataset, prep_dataset
 import argparse
 
-# gamma table for sRGB -> linear light conversion
+# gamma table for RGB -> linear 
 _GAMMA_TABLE = scipy.io.loadmat(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'assets', 'gamma.mat')
 )['gammaTable']
@@ -25,28 +26,21 @@ def gamma_linear(data):
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     args = parser.parse_args()
-
     start_time_total = time.time()
 
-    # TODO: the imagenet dataset is no longer at this path in Callista's ceph folder -
-    # find its new location and update dir_path before running this script again.
-    dir_path = '/mnt/home/cdyer/ceph/images/imagenet/'
-    # dir_path = '/mnt/home/gkrawezik/ceph/AI_DATASETS/ImageNet/2012/nano_imagenet/'
-    # dir_path = '/mnt/home/gkrawezik/ceph/AI_DATASETS/imagenet/'
+    dir_path = '/mnt/home/gkrawezik/ceph/AI_DATASETS/imagenet/'
     # dir_path ='/mnt/home/zkadkhodaie/ceph/datasets/imagenet/'
     folder_names = os.listdir(dir_path + 'train/')
 
-    # Builds train_80x80_color_list.pt: a list of ~1000 tensors, one per ImageNet class,
-    # each shaped (N_class, 3, 80, 80) - not a single dataset tensor. `data` below holds
-    # just one class at a time; train_sets accumulates all classes into that list, which
-    # is what gets saved to disk and later loaded back as `full_train` in main.py.
     train_sets = []
-    train_names = []  # same order as train_sets, so classes can be looked up by name later
+    train_names = []  
     gamma_check_done = False
     for i, name in enumerate(folder_names):
         try:
             # load_dataset already returns float (B,C,H,W); calling prep_dataset after
             # would permute a second time and corrupt the shape to (B,W,C,H)
+            # older version called prep_dataset(data, grayscale=False)
+            # here, which i think double-permutes on top of load_dataset's (B,C,H,W) output
             data = load_dataset(dir_path + 'train/'+name+'/', s=(80,80), crop=True)
 
             # print pixel values before/after on the first class only, to confirm the
@@ -82,7 +76,6 @@ def main():
 
     torch.save(test_sets, dir_path + 'test_80x80_color_list.pt')
     print(f'val set saved: {len(test_sets)} classes, {sum(d.shape[0] for d in test_sets)} images total')
-
     print("--- %s seconds ---" % (time.time() - start_time_total))
 
 

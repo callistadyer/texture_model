@@ -24,7 +24,6 @@ import datetime
 import os
 import pickle
 import sys
-from types import SimpleNamespace
 
 import numpy as np
 import torch
@@ -51,6 +50,7 @@ _repo_root = os.path.dirname(_code_folder)
 _denoiser_reconstruction_folder = os.path.join(_repo_root, 'Denoiser_Reconstruction')
 sys.path.insert(0, _denoiser_reconstruction_folder)
 from models.denoiser import Denoiser
+from utils.helper import parse_args as _load_conv3_args
 
 # --------------------------------------------------------------------------------------------------
 # Exact folder name (inside models_trained/) for each UNet_flex model this
@@ -65,18 +65,16 @@ UNET_MODEL_DIRS = {
 
 # --------------------------------------------------------------------------------------------------
 # conv3 is not a UNet_flex model and doesn't live under models_trained/, so it
-# needs its own weights path and hand-specified architecture. These numbers
-# were found by inspecting the shapes of the saved weights in conv3_ln.pt -
-# conv3 has no exp_arguments.pkl to read them from automatically.
+# needs its own weights path, and it has no exp_arguments.pkl to read its
+# architecture from automatically. Its architecture is loaded the same way
+# Denoiser_Reconstruction/recon_visualize_dichromat.ipynb loads it: via
+# Denoiser_Reconstruction/utils/helper.py::parse_args(), which is the single
+# source of truth for conv3's architecture (padding, num_kernels, kernel_size,
+# num_layers, im_channels) - it also returns a bunch of unrelated dataset/
+# training defaults that Denoiser simply ignores.
 # --------------------------------------------------------------------------------------------------
 CONV3_WEIGHTS_PATH = os.path.join(_denoiser_reconstruction_folder, 'assets', 'conv3_ln.pt')
-CONV3_ARCH_ARGS = SimpleNamespace(
-    padding=1,
-    num_kernels=64,
-    kernel_size=3,
-    num_layers=20,
-    im_channels=3,
-)
+CONV3_ARCH_ARGS = _load_conv3_args()
 
 # --------------------------------------------------------------------------------------------------
 # One line color for each model's curve, so every plot uses the same color
@@ -168,18 +166,21 @@ def load_conv3_model(device):
     skip is always True for this model.
     '''
 
-    # STEP 1 - build an empty network using the hand-specified architecture above.
+    CONV3_ARCH_ARGS.model_path = CONV3_WEIGHTS_PATH  # bookkeeping only - Denoiser doesn't read this field
+
+    # (1) BUILD: empty network, shaped using the hand-specified architecture above.
     model = Denoiser(CONV3_ARCH_ARGS)
 
-    # STEP 2 - load conv3's saved weights from disk.
+    # (2) LOAD: read the trained weights off disk into memory (not in the network yet).
     saved_state_dict = torch.load(CONV3_WEIGHTS_PATH, map_location='cpu', weights_only=False)
 
-    # STEP 3 - copy the trained weights in, switch to eval mode, move to device.
+    # (3) INSERT: copy the loaded weights into the empty network, then switch to
+    # eval mode and move the model onto the requested device.
     model.load_state_dict(saved_state_dict)
     model.eval()
     model.to(device)
 
-    # STEP 4 - conv3 always predicts the noise residual, not the clean image.
+    # conv3 always predicts the noise residual, not the clean image.
     skip = True
 
     return model, skip

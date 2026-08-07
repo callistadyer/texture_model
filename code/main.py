@@ -270,15 +270,15 @@ def main():
             print('debug mode')
             # Callista edit: standardized filenames to 80x80
             # load first 3 classes from val set as a tiny train set for quick sanity checking (avoids loading large train file)
-            train_set = torch.load( args.data_path + '/test_80x80_color_list.pt', weights_only=True) [0:3]
+            train_set = torch.load( args.data_path + '/test_80x80_color_list_linearized.pt', weights_only=True) [0:3]
             # load next 3 classes from val set as test set
-            test_set = torch.load( args.data_path + '/test_80x80_color_list.pt', weights_only=True) [3:6]
+            test_set = torch.load( args.data_path + '/test_80x80_color_list_linearized.pt', weights_only=True) [3:6]
         else:
             # Callista edit: standardized filenames to 80x80
             # load full training set
-            train_set = torch.load( args.data_path + '/train_80x80_color_list.pt', weights_only=True)
+            train_set = torch.load( args.data_path + '/train_80x80_color_list_linearized.pt', weights_only=True)
             # load full val set
-            test_set = torch.load( args.data_path + '/test_80x80_color_list.pt', weights_only=True)    
+            test_set = torch.load( args.data_path + '/test_80x80_color_list_linearized.pt', weights_only=True)
             # train_set, test_set = load_imagenet_subset(args, 200)
     
     # Callista change 6/30/26 - split-half training for generalization test

@@ -20,33 +20,32 @@ import matplotlib
 matplotlib.use('macosx')
 import matplotlib.pyplot as plt
 
-# SimpleNamespace is a tiny built-in helper that just lets you store a group of
-# named values (like a lightweight version of a dictionary, but you access
-# values with a dot, e.g. conv3_args.num_kernels instead of conv3_args['num_kernels']).
-from types import SimpleNamespace
-
 # ----------------------------------------------------------------------------
 # This project's code lives in a couple of different folders
 # ----------------------------------------------------------------------------
 sys.path.insert(0, '/Users/callista/Documents/MATLAB/projects/ColorCorrectionRecon/texture_model/code')
 sys.path.insert(0, '/Users/callista/Documents/MATLAB/projects/ColorCorrectionRecon/texture_model/Denoiser_Reconstruction')
 
-import torch                                  
+import torch
 from model_loader_func import load_learned_model
 from quality_metrics_func import batch_ave_psnr_torch  # computes PSNR (image quality score, see below)
 from models.denoiser import Denoiser                 # the "conv3" model's network architecture
-from PIL import Image                            
-import torchvision.transforms as T               
+from utils.helper import parse_args as load_conv3_args  # single source of truth for conv3's architecture
+from PIL import Image
+import torchvision.transforms as T
 
 
 # ----------------------------------------------------------------------------
 # conv3 LQ's already-trained model (not trained by this project).
 # Unlike the UNet models, it doesn't come with a saved "exp_arguments.pkl" file
-# describing its architecture, so we have to write out its settings by hand
-# here. These specific numbers were figured out by inspecting the shapes of
-# the saved weights in conv3_ln.pt.
+# describing its architecture. Its architecture is loaded the same way
+# Denoiser_Reconstruction/recon_visualize_dichromat.ipynb and code/plot_psnr.py
+# load it: via Denoiser_Reconstruction/utils/helper.py::parse_args(), which contains 
+# default architecture (padding, num_kernels,
+# kernel_size, num_layers, im_channels) - it also returns a bunch of unrelated
+# dataset/training defaults that Denoiser simply ignores.
 # ----------------------------------------------------------------------------
-conv3_args = SimpleNamespace(padding=1,num_kernels=64,kernel_size=3,num_layers=20,im_channels=3)
+conv3_args = load_conv3_args()
 conv3_weights_path = '/Users/callista/Documents/MATLAB/projects/ColorCorrectionRecon/texture_model/Denoiser_Reconstruction/assets/conv3_ln.pt'
 
 # ----------------------------------------------------------------------------
